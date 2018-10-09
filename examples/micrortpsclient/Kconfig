@@ -1,0 +1,32 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+config EXAMPLES_CLIENT
+	bool "Micro RTPS example"
+	default n
+	---help---
+		Enable the Micro RTPS Client example
+
+
+
+config EXAMPLES_CLIENT_PROGNAME
+	string "Program name"
+	default "client"
+	depends on BUILD_KERNEL
+	---help---
+		This is the name of the program that will be use when the NSH ELF
+		program is installed.
+
+config EXAMPLES_CLIENT_PRIORITY
+	int "Client task priority"
+	depends on EXAMPLES_CLIENT
+	default 100
+
+config EXAMPLES_CLIENT_STACKSIZE
+	int "Client stack size"
+	depends on EXAMPLES_CLIENT
+	default 10000
+
+
