@@ -191,6 +191,30 @@ namespace NXWidgets
     virtual bool lower(void) = 0;
 
     /**
+     * Return true if the window is currently being displayed
+     *
+     * @return True if the window is visible
+     */
+
+    virtual bool isVisible(void) = 0;
+
+    /**
+     * Show a hidden window
+     *
+     * @return True on success, false on any failure.
+     */
+
+    virtual bool show(void) = 0;
+
+    /**
+     * Hide a visible window
+     *
+     * @return True on success, false on any failure.
+     */
+
+    virtual bool hide(void) = 0;
+
+    /**
      * May be used to either (1) raise a window to the top of the display and
      * select modal behavior, or (2) disable modal behavior.
      *

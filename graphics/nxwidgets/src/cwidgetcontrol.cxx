@@ -1,7 +1,7 @@
 /****************************************************************************
  * apps/graphics/nxwidgets/src/cwidgetcontrol.cxx
  *
- *   Copyright (C) 2012-2013 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012-2013, 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -220,6 +220,7 @@ void CWidgetControl::postWindowEvent(void)
  *         {
  *           window->waitWindowEvent();
  *         }
+ *
  *       sched_unlock();
  *     }
  *
@@ -427,16 +428,13 @@ void CWidgetControl::geometryEvent(NXHANDLE hWindow,
  * in particular, will occur when the a portion of the window that was
  * previously obscured is now exposed.
  *
- * @param rect The region in the window that must be redrawn.
+ * @param nxRect The region in the window that must be redrawn.
  * @param more True means that more re-draw requests will follow
  */
 
 void CWidgetControl::redrawEvent(FAR const struct nxgl_rect_s *nxRect, bool more)
 {
-  // REVISIT.  This is not not yet used and not fully implemented.
-  CRect rect;
-  rect.setNxRect(nxRect);
-  m_eventHandlers.raiseRedrawEvent();
+  m_eventHandlers.raiseRedrawEvent(nxRect, more);
 }
 
 /**
@@ -568,13 +566,13 @@ void CWidgetControl::newMouseEvent(FAR const struct nxgl_point_s *pos, uint8_t b
     }
 #endif
 
-  // Notify any external logic that a keyboard event has occurred
+  // Notify any external logic that a mouse event has occurred
 
-  m_eventHandlers.raiseMouseEvent();
-
-  // Then wake up logic that may be waiting for a window event
+  m_eventHandlers.raiseMouseEvent(pos, buttons);
 
 #ifdef CONFIG_NXWIDGET_EVENTWAIT
+  // Then wake up logic that may be waiting for a window event
+
   postWindowEvent();
 #endif
 }
@@ -607,9 +605,9 @@ void CWidgetControl::newKeyboardEvent(uint8_t nCh, FAR const uint8_t *pStr)
 
   m_eventHandlers.raiseKeyboardEvent();
 
+#ifdef CONFIG_NXWIDGET_EVENTWAIT
   // Then wake up logic that may be waiting for a window event
 
-#ifdef CONFIG_NXWIDGET_EVENTWAIT
   postWindowEvent();
 #endif
 }
@@ -739,9 +737,11 @@ uint32_t CWidgetControl::elapsedTime(FAR const struct timespec *startTime)
  * @param x Click xcoordinate.
  * @param y Click ycoordinate.
  * @param widget Pointer to a specific widget or NULL.
+ * @return True if is a widget responds to the left click
  */
 
-void CWidgetControl::handleLeftClick(nxgl_coord_t x, nxgl_coord_t y, CNxWidget *widget)
+bool CWidgetControl::handleLeftClick(nxgl_coord_t x, nxgl_coord_t y,
+                                     CNxWidget *widget)
 {
   // Working with a specific widget or the whole structure?
 
@@ -753,7 +753,7 @@ void CWidgetControl::handleLeftClick(nxgl_coord_t x, nxgl_coord_t y, CNxWidget *
         {
           if (m_widgets[i]->click(x, y))
             {
-              return;
+              return true;
             }
         }
     }
@@ -761,8 +761,10 @@ void CWidgetControl::handleLeftClick(nxgl_coord_t x, nxgl_coord_t y, CNxWidget *
     {
       // One widget
 
-      (void)widget->click(x, y);
+      return widget->click(x, y);
     }
+
+  return false;
 }
 
 /**
@@ -786,23 +788,29 @@ void CWidgetControl::processDeleteQueue(void)
  *
  * @param widget. Specific widget to poll.  Use NULL to run the
  *    all widgets in the window.
- * @return True means a mouse event occurred
+ * @return True means an interesting mouse event occurred
  */
 
 bool CWidgetControl::pollMouseEvents(CNxWidget *widget)
 {
 #ifdef CONFIG_NX_XYINPUT
-  bool mouseEvent = true;  // Assume that an interesting mouse event occurred
+  bool mouseEvent = false;  // Assume that no interesting mouse event occurred
 
-  // All widgets
+  // Left click event for all widgets
 
   if (m_xyinput.leftPressed)
     {
        // Handle a new left button press event
 
-       handleLeftClick(m_xyinput.x, m_xyinput.y, widget);
+       if (handleLeftClick(m_xyinput.x, m_xyinput.y, widget))
+         {
+           mouseEvent = true;
+         }
     }
-  else if (m_xyinput.leftDrag)
+
+  // Drag event for the clicked widget
+
+  if (!mouseEvent && m_xyinput.leftDrag)
     {
       // The left button is still being held down
 
@@ -813,19 +821,18 @@ bool CWidgetControl::pollMouseEvents(CNxWidget *widget)
           m_clickedWidget->drag(m_xyinput.x, m_xyinput.y,
                                 m_xyinput.x - m_xyinput.lastX,
                                 m_xyinput.y - m_xyinput.lastY);
+          mouseEvent = true;
         }
     }
-  else if (m_clickedWidget != (CNxWidget *)NULL)
+
+  // Check for release event on the clicked widget
+
+  if (!mouseEvent && m_clickedWidget != (CNxWidget *)NULL)
     {
       // Mouse left button release event
 
       m_clickedWidget->release(m_xyinput.x, m_xyinput.y);
-    }
-  else
-    {
-      // No interesting mouse events
-
-      mouseEvent = false;
+      mouseEvent = true;
     }
 
   // Clear all press and release events once they have been processed
@@ -908,7 +915,7 @@ bool CWidgetControl::pollCursorControlEvents(void)
 
 void CWidgetControl::takeGeoSem(void)
 {
-  // Take the geometry semaphore.  Retry is an error occurs (only if
+  // Take the geometry semaphore.  Retry if an error occurs (only if
   // the error is due to a signal interruption).
 
   int ret;
@@ -917,6 +924,41 @@ void CWidgetControl::takeGeoSem(void)
       ret = sem_wait(&m_geoSem);
     }
   while (ret < 0 && errno == EINTR);
+}
+
+/**
+ * Check if geomtry data is available.  If not, [re-]request the
+ * geomtry data and wait for it to become valid.
+ *
+ * CAREFUL:  This assumes that if we already have geometry data, then
+ * it is valid.  This might not be true if the size position was
+ * recently changed.
+ *
+ * REVISIT:  Ideally m_haveGeometry would be set false an any calls to
+ * reposition or resize the window.
+ */
+
+void CWidgetControl::waitGeoData(void)
+{
+  // Check if we already have geometry data available.
+
+  while (!m_haveGeometry)
+    {
+      // No.. it is probably on its way, but to avoid any possibility
+      // of a deadlock wait, request the position data again.
+
+      int ret = nx_getposition(m_hWindow);
+      if (ret < 0)
+        {
+          gerr("ERROR: nx_getposition failed: %d\n", errno);
+        }
+
+      takeGeoSem();
+    }
+
+  // Put the semaphore count back to 1 for the next guy
+
+  giveGeoSem();
 }
 
 /**

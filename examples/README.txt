@@ -56,7 +56,6 @@ examples/ajoystick
 
   Configuration Pre-requisites:
 
-    CONFIG_DISABLE_SIGNALS - Must *NOT* be selected
     CONFIG_AJOYSTICK - The analog joystick driver
 
   Example Configuration:
@@ -292,7 +291,6 @@ examples/djoystick
 
   Configuration Pre-requisites:
 
-    CONFIG_DISABLE_SIGNALS - Must *NOT* be selected
     CONFIG_DJOYSTICK - The discrete joystick driver
 
   Example Configuration:
@@ -497,7 +495,6 @@ examples/ftpd
   is required.  But here are a couple that are less obvious:
 
     CONFIG_DISABLE_PTHREAD - pthread support is required
-    CONFIG_DISABLE_POLL - poll() support is required
 
   Other FTPD configuration options thay may be of interest:
 
@@ -979,7 +976,6 @@ examples/nx
   if they are not as expected:
 
     CONFIG_DISABLE_MQUEUE=n
-    CONFIG_DISABLE_SIGNALS=n
     CONFIG_DISABLE_PTHREAD=n
     CONFIG_NX_BLOCKING=y
     CONFIG_LIB_BOARDCTL=y
@@ -996,7 +992,6 @@ examples/nxterm
     CONFIG_NX=y              -- NX graphics must be enabled
     CONFIG_NXTERM=y          -- The NX console driver must be built
     CONFIG_DISABLE_MQUEUE=n  -- Message queue support must be available.
-    CONFIG_DISABLE_SIGNALS=n -- Signals are needed
     CONFIG_DISABLE_PTHREAD=n -- pthreads are needed
     CONFIG_NX_BLOCKING=y     -- pthread APIs must be blocking
     CONFIG_NSH_CONSOLE=y     -- NSH must be configured to use a console.
@@ -1194,7 +1189,6 @@ examples/nxtext
   error if they are not as expected:
 
     CONFIG_DISABLE_MQUEUE=n
-    CONFIG_DISABLE_SIGNALS=n
     CONFIG_DISABLE_PTHREAD=n
     CONFIG_NX_BLOCKING=y
 
@@ -1249,13 +1243,9 @@ examples/poll
 ^^^^^^^^^^^^^
 
   A test of the poll() and select() APIs using FIFOs and, if available,
-  stdin, and a TCP/IP socket.  In order to build this test, you must the
-  following selected in your NuttX configuration file:
-
-  CONFIG_DISABLE_POLL               - NOT defined
-
-  In order to use the TCP/IP select test, you have also the following
-  additional things selected in your NuttX configuration file:
+  stdin, and a TCP/IP socket.  In order to use the TCP/IP select
+  test, you must have the following things selected in your NuttX
+  configuration file:
 
   CONFIG_NET                        - Defined for general network support
   CONFIG_NET_TCP                    - Defined for TCP/IP support

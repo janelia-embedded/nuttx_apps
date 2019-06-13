@@ -160,21 +160,21 @@ void CCallback::synchronize(NXWINDOW hwnd, enum WindowType windowType)
   * ReDraw Callback.  The redraw action is handled by CWidgetControl:redrawEvent.
   *
   * @param hwnd Handle to a specific NX window.
-  * @param rect The rectangle that needs to be re-drawn (in window
+  * @param nxRect The rectangle that needs to be re-drawn (in window
   * relative coordinates).
-  * @param bMore true: More re-draw requests will follow.
+  * @param more true: More re-draw requests will follow.
   * @param arg User provided argument (see nx_openwindow, nx_requestbg,
   * nxtk_openwindow, or nxtk_opentoolbar).
   */
 
 void CCallback::redraw(NXHANDLE hwnd,
-                       FAR const struct nxgl_rect_s *rect,
-                       bool bMore, FAR void *arg)
+                       FAR const struct nxgl_rect_s *nxRect,
+                       bool more, FAR void *arg)
 {
-  ginfo("hwnd=%p rect={(%d,%d),(%d,%d)} bMore=%s\n",
+  ginfo("hwnd=%p nxRect={(%d,%d),(%d,%d)} more=%s\n",
          hwnd,
-         rect->pt1.x, rect->pt1.y, rect->pt2.x, rect->pt2.y,
-         bMore ? "true" : "false");
+         nxRect->pt1.x, nxRect->pt1.y, nxRect->pt2.x, nxRect->pt2.y,
+         more ? "true" : "false");
 
   // The argument must be the CCallback instance
 
@@ -182,7 +182,7 @@ void CCallback::redraw(NXHANDLE hwnd,
 
   // Just forward the callback to the CWidgetControl::redrawEvent method
 
-  This->m_widgetControl->redrawEvent(rect, bMore);
+  This->m_widgetControl->redrawEvent(nxRect, more);
 }
 
  /**
@@ -276,7 +276,8 @@ void CCallback::newKeyboardEvent(NXHANDLE hwnd, uint8_t nCh,
 
   if (This->m_nxterm)
     {
-      struct boardioc_nxterm_kbdin_s kbdin;
+      struct boardioc_nxterm_ioctl_s iocargs;
+      struct nxtermioc_kbdin_s kbdin;
 
       // Keyboard input is going to an NxTerm
 
@@ -284,7 +285,10 @@ void CCallback::newKeyboardEvent(NXHANDLE hwnd, uint8_t nCh,
       kbdin.buffer = str;
       kbdin.buflen = nCh;
 
-      (void)boardctl(BOARDIOC_NXTERM_KBDIN, (uintptr_t)&kbdin);
+      iocargs.cmd  = NXTERMIOC_NXTERM_KBDIN;
+      iocargs.arg  = (uintptr_t)&kbdin;
+
+      (void)boardctl(BOARDIOC_NXTERM_IOCTL, (uintptr_t)&iocargs);
     }
   else
 #endif

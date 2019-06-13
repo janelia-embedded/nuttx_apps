@@ -50,10 +50,6 @@
 #include "graphics/nxwidgets/cbitmap.hxx"
 
 /****************************************************************************
- * Pre-Processor Definitions
- ****************************************************************************/
-
-/****************************************************************************
  * Method Implementations
  ****************************************************************************/
 
@@ -64,15 +60,18 @@ using namespace NXWidgets;
  *
  * @param hNxServer Handle to the NX server.
  * @param widgetControl Controlling widget for this window.
+ * @param flags Window properties
  */
 
-CNxTkWindow::CNxTkWindow(NXHANDLE hNxServer, CWidgetControl *widgetControl)
+CNxTkWindow::CNxTkWindow(NXHANDLE hNxServer, CWidgetControl *widgetControl,
+                         uint8_t flags)
   : CCallback(widgetControl)
 {
   // Save construction values
 
   m_hNxServer     = hNxServer;
   m_widgetControl = widgetControl;
+  m_flags         = flags;
 
   // Nullify uninitilized pointers and values
 
@@ -120,8 +119,8 @@ bool CNxTkWindow::open(void)
 
   // Create the window
 
-  m_hNxTkWindow = nxtk_openwindow(m_hNxServer, 0, vtable,
-                                 (FAR void *)static_cast<CCallback*>(this));
+  m_hNxTkWindow = nxtk_openwindow(m_hNxServer, m_flags, vtable,
+                                  (FAR void *)static_cast<CCallback*>(this));
   return m_hNxTkWindow != NULL;
 }
 
@@ -149,7 +148,8 @@ CWidgetControl *CNxTkWindow::getWidgetControl(void) const
  * @param height Height of the toolbar
  */
 
-CNxToolbar *CNxTkWindow::openToolbar(nxgl_coord_t height, CWidgetControl *widgetControl)
+CNxToolbar *CNxTkWindow::openToolbar(nxgl_coord_t height,
+                                     CWidgetControl *widgetControl)
 {
   if (m_hNxTkWindow && !m_toolbar)
     {
@@ -195,6 +195,7 @@ CNxToolbar *CNxTkWindow::openToolbar(nxgl_coord_t height, CWidgetControl *widget
             {
               delete allocControl;
             }
+
           return (CNxToolbar *)0;
         }
 
@@ -210,6 +211,7 @@ CNxToolbar *CNxTkWindow::openToolbar(nxgl_coord_t height, CWidgetControl *widget
             {
               delete allocControl;
             }
+
           return (CNxToolbar *)0;
         }
 
@@ -248,7 +250,8 @@ CNxToolbar *CNxTkWindow::openToolbar(nxgl_coord_t height, CWidgetControl *widget
       struct nxgl_size_s toolbarSize;
       nxgl_rectsize(&toolbarSize, &toolbarBounds);
 
-      // Get the toolbar position in display coordinates by adding the window position
+      // Get the toolbar position in display coordinates by adding the
+      // window position
 
       struct nxgl_point_s toolbarPos;
       nxgl_vectoradd(&toolbarPos, &toolbarBounds.pt1, &windowPos);
@@ -331,32 +334,6 @@ bool CNxTkWindow::setSize(FAR const struct nxgl_size_s *size)
   // Set the window size
 
   return nxtk_setsize(m_hNxTkWindow, size) == OK;
-}
-
-/**
- * Bring the window to the top of the display.
- *
- * @return True on success, false on any failure.
- */
-
-bool CNxTkWindow::raise(void)
-{
-  // Raise the window to the top of the display
-
-  return nxtk_raise(m_hNxTkWindow) == OK;
-}
-
-/**
- * Lower the window to the bottom of the display.
- *
- * @return True on success, false on any failure.
- */
-
-bool CNxTkWindow::lower(void)
-{
-  // Lower the window to the bottom of the display
-
-  return nxtk_lower(m_hNxTkWindow) == OK;
 }
 
 /**

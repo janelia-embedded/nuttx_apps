@@ -222,6 +222,41 @@ namespace NXWidgets
     }
 
     /**
+     * Return true if the toolbar is currently being displayed
+     *
+     * @return True if the window is visible
+     */
+
+    inline bool isVisible(void)
+    {
+      return !nxtk_ishidden(m_hNxTkWindow);
+    }
+
+    /**
+     * Show a hidden toolbar.  The toolbar is a component of the containing,
+     * parent, framed window.  It cannot be shown separately.
+     *
+     * @return True on success, false on any failure.
+     */
+
+    inline bool show(void)
+    {
+      return nxtk_setvisibility(m_hNxTkWindow, false) == OK;
+    }
+
+    /**
+     * Hide a visible window.  The toolbar is a component of the containing,
+     * parent, framed window.  It cannot be hidden separately.
+     *
+     * @return True on success, false on any failure.
+     */
+
+    inline bool hide(void)
+    {
+      return nxtk_setvisibility(m_hNxTkWindow, true) == OK;
+    }
+
+    /**
      * May be used to either (1) raise a window to the top of the display and
      * select modal behavior, or (2) disable modal behavior.  The toolbar is
      * a component of the containing, parent, framed window.  It cannot

@@ -280,9 +280,7 @@ const char g_fmtcmdfailed[]      = "nsh: %s: %s failed: %d\n";
 #endif
 const char g_fmtcmdoutofmemory[] = "nsh: %s: out of memory\n";
 const char g_fmtinternalerror[]  = "nsh: %s: Internal error\n";
-#ifndef CONFIG_DISABLE_SIGNALS
 const char g_fmtsignalrecvd[]    = "nsh: %s: Interrupted by signal\n";
-#endif
 
 /****************************************************************************
  * Private Functions
@@ -834,13 +832,11 @@ static FAR char *nsh_filecat(FAR struct nsh_vtbl_s *vtbl, FAR char *s1,
             {
               /* EINTR is not an error (but will still stop the copy) */
 
-#ifndef CONFIG_DISABLE_SIGNALS
               if (errno == EINTR)
                 {
                   nsh_error(vtbl, g_fmtsignalrecvd, "``");
                 }
               else
-#endif
                 {
                   /* Read error */
 
@@ -2333,7 +2329,7 @@ static int nsh_parse_command(FAR struct nsh_vtbl_s *vtbl, FAR char *cmdline)
   int       argc;
   int       ret;
 #if CONFIG_NFILE_STREAMS > 0
-  bool      redirect_save;
+  bool      redirect_save = false;
 #endif
 
   /* Initialize parser state */
